@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, Inbox, LogOut, Mail, Menu, MessageSquareQuote, Newspaper, Sparkles, ShieldCheck, Users, X } from "lucide-react";
+import { BarChart3, GraduationCap, Inbox, LogOut, Mail, Menu, MessageSquareQuote, Newspaper, Sparkles, ShieldCheck, Users, X } from "lucide-react";
 import { clearToken, getMe, getGreeting, AuthError } from "../../lib/adminApi";
 import { AdminUserProvider } from "../../lib/AdminUserContext";
 
 const GREETING_CACHE_KEY = "ksd_greeting";
 
 const ALL_NAV = [
-  { to: "/leads", label: "Leads", icon: Inbox, anyOf: ["leads_contact", "leads_internship"] },
+  { to: "/consultations", label: "Consultation Requests", icon: Inbox, section: "leads_contact" },
+  { to: "/internships", label: "Internship Applications", icon: GraduationCap, section: "leads_internship" },
   { to: "/posts", label: "Blog Posts", icon: Newspaper, section: "posts" },
   { to: "/team", label: "Team", icon: Users, section: "team" },
   { to: "/testimonials", label: "Testimonials", icon: MessageSquareQuote, section: "testimonials" },

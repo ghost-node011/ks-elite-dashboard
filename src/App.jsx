@@ -7,7 +7,8 @@ import Loader from "./components/Loader";
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminGuard = lazy(() => import("./pages/admin/AdminGuard"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
-const AdminLeads = lazy(() => import("./pages/admin/AdminLeads"));
+const AdminConsultations = lazy(() => import("./pages/admin/AdminConsultations"));
+const AdminInternships = lazy(() => import("./pages/admin/AdminInternships"));
 const AdminPosts = lazy(() => import("./pages/admin/AdminPosts"));
 const AdminPostEditor = lazy(() => import("./pages/admin/AdminPostEditor"));
 const AdminTeam = lazy(() => import("./pages/admin/AdminTeam"));
@@ -41,8 +42,9 @@ export default function App() {
                 </AdminGuard>
               }
             >
-              <Route index element={<Navigate to="leads" replace />} />
-              <Route path="leads" element={<AdminLeads />} />
+              <Route index element={<Navigate to="consultations" replace />} />
+              <Route path="consultations" element={<AdminConsultations />} />
+              <Route path="internships" element={<AdminInternships />} />
               <Route path="posts" element={<AdminPosts />} />
               <Route path="posts/new" element={<AdminPostEditor />} />
               <Route path="posts/:id/edit" element={<AdminPostEditor />} />

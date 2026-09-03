@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download, FileText, Sparkles, Trash2 } from "lucide-react";
-import { getContacts, getInternships, updateLeadStatus, deleteLead, AuthError } from "../../lib/adminApi";
+import { updateLeadStatus, deleteLead, AuthError } from "../../lib/adminApi";
 import { resolveImageUrl } from "../../lib/api";
 import { downloadCsv } from "../../lib/csv";
-import { useAdminUser, hasPermission } from "../../lib/AdminUserContext";
-
-const ALL_TABS = [
-  { key: "contact", label: "Consultation Requests", fetcher: getContacts, permission: "leads_contact" },
-  { key: "internship", label: "Internship Applications", fetcher: getInternships, permission: "leads_internship" },
-];
 
 const STATUS_OPTIONS = ["new", "contacted", "closed"];
 const STATUS_COLORS = { new: "#c9a24b", contacted: "#2563eb", closed: "#6b7280" };
@@ -19,26 +13,20 @@ const VERDICT_COLORS = {
   "Not a Fit": { background: "rgba(107,114,128,0.15)", color: "#6b7280" },
 };
 
-export default function AdminLeads() {
+// Shared table for the two lead types (contact / internship) — each type gets
+// its own sidebar section and route, but the fetch/status/delete/export/render
+// logic is identical apart from a handful of column differences below.
+export default function LeadsTable({ type, title, fetcher }) {
   const navigate = useNavigate();
-  const user = useAdminUser();
-  const TABS = useMemo(() => ALL_TABS.filter((t) => hasPermission(user, t.permission)), [user]);
+  const isInternship = type === "internship";
 
-  const [tab, setTab] = useState(null);
   const [leads, setLeads] = useState(null);
   const [error, setError] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
 
-  // Default to the first tab this user actually has access to, once known.
-  useEffect(() => {
-    if (TABS.length && !tab) setTab(TABS[0].key);
-  }, [TABS]);
-
-  const load = (key) => {
+  const load = () => {
     setLeads(null);
     setError("");
-    const fetcher = TABS.find((t) => t.key === key)?.fetcher;
-    if (!fetcher) return;
     fetcher()
       .then(setLeads)
       .catch((err) => {
@@ -47,13 +35,11 @@ export default function AdminLeads() {
       });
   };
 
-  useEffect(() => {
-    if (tab) load(tab);
-  }, [tab]);
+  useEffect(load, [type]);
 
   const setStatus = async (id, status) => {
     try {
-      await updateLeadStatus(tab, id, status);
+      await updateLeadStatus(type, id, status);
       setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
     } catch (err) {
       if (err instanceof AuthError) return navigate("/login", { replace: true });
@@ -64,7 +50,7 @@ export default function AdminLeads() {
   const remove = async (id) => {
     if (!confirm("Delete this lead permanently?")) return;
     try {
-      await deleteLead(tab, id);
+      await deleteLead(type, id);
       setLeads((prev) => prev.filter((l) => l.id !== id));
     } catch (err) {
       if (err instanceof AuthError) return navigate("/login", { replace: true });
@@ -74,16 +60,16 @@ export default function AdminLeads() {
 
   const visibleLeads = useMemo(() => {
     if (!leads) return leads;
-    if (tab !== "internship" || !recommendedOnly) return leads;
+    if (!isInternship || !recommendedOnly) return leads;
     return leads
       .filter((l) => l.aiVerdict === "Strong Fit")
       .sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
-  }, [leads, tab, recommendedOnly]);
+  }, [leads, isInternship, recommendedOnly]);
 
-  const recommendedCount = tab === "internship" ? (leads?.filter((l) => l.aiVerdict === "Strong Fit").length ?? 0) : 0;
+  const recommendedCount = isInternship ? (leads?.filter((l) => l.aiVerdict === "Strong Fit").length ?? 0) : 0;
 
   const exportCsv = () => {
-    if (tab === "contact") {
+    if (!isInternship) {
       downloadCsv("consultation-requests.csv", visibleLeads, [
         ["Received", (l) => new Date(l.receivedAt).toLocaleString()],
         ["Name", "name"],
@@ -111,7 +97,7 @@ export default function AdminLeads() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display font-bold text-2xl">Leads</h1>
+        <h1 className="font-display font-bold text-2xl">{title}</h1>
         {visibleLeads?.length > 0 && (
           <button
             onClick={exportCsv}
@@ -124,23 +110,8 @@ export default function AdminLeads() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => { setTab(t.key); setRecommendedOnly(false); }}
-            className="rounded-full px-4 py-2 text-sm font-medium border"
-            style={
-              tab === t.key
-                ? { background: "var(--accent)", borderColor: "var(--accent)", color: "var(--color-navy)" }
-                : { borderColor: "var(--line)", color: "var(--fg-muted)" }
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-
-        {tab === "internship" && leads?.length > 0 && (
+      {isInternship && leads?.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           <button
             onClick={() => setRecommendedOnly((v) => !v)}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium border"
@@ -153,13 +124,12 @@ export default function AdminLeads() {
             <Sparkles size={13} />
             AI Recommended ({recommendedCount})
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
-      {user && TABS.length === 0 && <p className="text-sm text-[var(--fg-muted)]">You don't have access to any leads sections.</p>}
-      {leads === null && !error && tab && <p className="text-sm text-[var(--fg-muted)]">Loading…</p>}
-      {leads?.length === 0 && <p className="text-sm text-[var(--fg-muted)]">No {tab === "contact" ? "consultation requests" : "internship applications"} yet.</p>}
+      {leads === null && !error && <p className="text-sm text-[var(--fg-muted)]">Loading…</p>}
+      {leads?.length === 0 && <p className="text-sm text-[var(--fg-muted)]">No {isInternship ? "internship applications" : "consultation requests"} yet.</p>}
       {leads?.length > 0 && visibleLeads.length === 0 && (
         <p className="text-sm text-[var(--fg-muted)]">No candidates the AI flagged as a strong fit yet.</p>
       )}
@@ -173,9 +143,9 @@ export default function AdminLeads() {
                   <th className="px-4 py-3">Received</th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Contact</th>
-                  <th className="px-4 py-3">{tab === "contact" ? "Matter" : "College"}</th>
+                  <th className="px-4 py-3">{isInternship ? "College" : "Matter"}</th>
                   <th className="px-4 py-3">Details</th>
-                  {tab === "internship" && <th className="px-4 py-3">AI Fit</th>}
+                  {isInternship && <th className="px-4 py-3">AI Fit</th>}
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -187,19 +157,21 @@ export default function AdminLeads() {
                       {new Date(l.receivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </td>
                     <td className="px-4 py-3 font-medium whitespace-nowrap">
-                      {tab === "contact" ? l.name : `${l.firstName} ${l.surname}`}
+                      {isInternship ? `${l.firstName} ${l.surname}` : l.name}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {tab === "contact" ? l.phone : (
+                      {isInternship ? (
                         <div className="flex flex-col">
                           <span>{l.email}</span>
                           <span className="text-[var(--fg-muted)]">{l.contact}</span>
                         </div>
+                      ) : (
+                        l.phone
                       )}
                     </td>
-                    <td className="px-4 py-3">{tab === "contact" ? l.matter || "—" : l.college}</td>
+                    <td className="px-4 py-3">{isInternship ? l.college : l.matter || "—"}</td>
                     <td className="px-4 py-3 max-w-xs text-[var(--fg-muted)]">
-                      {tab === "contact" ? l.message : (
+                      {isInternship ? (
                         <div className="flex flex-col gap-1.5">
                           <span>Mode of Internship: {l.mode} · Preferred Month: {l.month}</span>
                           {l.resumeUrl && (
@@ -214,9 +186,11 @@ export default function AdminLeads() {
                             </a>
                           )}
                         </div>
+                      ) : (
+                        l.message
                       )}
                     </td>
-                    {tab === "internship" && (
+                    {isInternship && (
                       <td className="px-4 py-3 max-w-[220px]">
                         {l.aiVerdict ? (
                           <div className="flex flex-col gap-1">
