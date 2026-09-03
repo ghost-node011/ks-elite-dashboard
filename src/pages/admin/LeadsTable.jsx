@@ -145,6 +145,7 @@ export default function LeadsTable({ type, title, fetcher }) {
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">{isInternship ? "College" : "Matter"}</th>
                   <th className="px-4 py-3">Details</th>
+                  {isInternship && <th className="px-4 py-3">Resume</th>}
                   {isInternship && <th className="px-4 py-3">AI Fit</th>}
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3"></th>
@@ -171,25 +172,25 @@ export default function LeadsTable({ type, title, fetcher }) {
                     </td>
                     <td className="px-4 py-3">{isInternship ? l.college : l.matter || "—"}</td>
                     <td className="px-4 py-3 max-w-xs text-[var(--fg-muted)]">
-                      {isInternship ? (
-                        <div className="flex flex-col gap-1.5">
-                          <span>Mode of Internship: {l.mode} · Preferred Month: {l.month}</span>
-                          {l.resumeUrl && (
-                            <a
-                              href={resolveImageUrl(l.resumeUrl)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 hover:text-[var(--accent)] w-fit"
-                            >
-                              <FileText size={12} />
-                              Resume
-                            </a>
-                          )}
-                        </div>
-                      ) : (
-                        l.message
-                      )}
+                      {isInternship ? `Mode of Internship: ${l.mode} · Preferred Month: ${l.month}` : l.message}
                     </td>
+                    {isInternship && (
+                      <td className="px-4 py-3">
+                        {l.resumeUrl ? (
+                          <a
+                            href={resolveImageUrl(l.resumeUrl)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 hover:text-[var(--accent)] w-fit"
+                          >
+                            <FileText size={12} />
+                            Resume
+                          </a>
+                        ) : (
+                          <span className="text-[var(--fg-muted)]">—</span>
+                        )}
+                      </td>
+                    )}
                     {isInternship && (
                       <td className="px-4 py-3 max-w-[220px]">
                         {l.aiVerdict ? (
