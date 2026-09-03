@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, Inbox, LogOut, Mail, Menu, MessageSquareQuote, Newspaper, ShieldCheck, Users, X } from "lucide-react";
-import { clearToken, getMe, AuthError } from "../../lib/adminApi";
+import { BarChart3, Inbox, LogOut, Mail, Menu, MessageSquareQuote, Newspaper, Sparkles, ShieldCheck, Users, X } from "lucide-react";
+import { clearToken, getMe, getGreeting, AuthError } from "../../lib/adminApi";
 import { AdminUserProvider } from "../../lib/AdminUserContext";
+
+const GREETING_CACHE_KEY = "ksd_greeting";
 
 const ALL_NAV = [
   { to: "/leads", label: "Leads", icon: Inbox, anyOf: ["leads_contact", "leads_internship"] },
@@ -35,6 +37,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [greeting, setGreeting] = useState(null);
 
   useEffect(() => {
     getMe()
@@ -44,23 +47,48 @@ export default function AdminLayout() {
       });
   }, []);
 
+  // One AI-written greeting per login session — cached so it doesn't
+  // regenerate (and re-hit the LLM) on every route change within the layout.
+  useEffect(() => {
+    if (!user) return;
+    const cached = sessionStorage.getItem(GREETING_CACHE_KEY);
+    if (cached === "dismissed") return;
+    if (cached) return setGreeting(cached);
+    getGreeting()
+      .then(({ greeting: g }) => {
+        if (!g) return;
+        setGreeting(g);
+        sessionStorage.setItem(GREETING_CACHE_KEY, g);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const dismissGreeting = () => {
+    setGreeting(null);
+    sessionStorage.setItem(GREETING_CACHE_KEY, "dismissed");
+  };
+
   const logout = () => {
     clearToken();
+    sessionStorage.removeItem(GREETING_CACHE_KEY);
     navigate("/login", { replace: true });
   };
 
   const nav = user ? visibleNav(user.permissions) : [];
 
   return (
-    <div className="min-h-screen md:flex" style={{ background: "var(--bg)", color: "var(--fg)" }}>
+    <div className="min-h-screen md:flex" style={{ background: "var(--bg-alt)", color: "var(--fg)" }}>
       {/* Mobile top bar */}
       <div
         className="md:hidden flex items-center justify-between px-4 py-3 border-b sticky top-0 z-20"
         style={{ borderColor: "var(--line)", background: "var(--card)" }}
       >
-        <div>
-          <p className="font-display font-bold text-sm">K.S. Elite</p>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Dashboard</p>
+        <div className="flex items-center gap-2.5">
+          <img src="/images/logo.png" alt="" width={30} height={30} className="object-contain shrink-0" />
+          <div>
+            <p className="font-display font-bold text-sm leading-tight">K.S. Elite</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Dashboard</p>
+          </div>
         </div>
         <button onClick={() => setMobileOpen((o) => !o)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -93,9 +121,12 @@ export default function AdminLayout() {
         className="hidden md:flex md:w-56 md:shrink-0 border-r px-4 py-6 flex-col gap-1"
         style={{ borderColor: "var(--line)", background: "var(--card)" }}
       >
-        <div className="px-2 mb-6">
-          <p className="font-display font-bold text-sm">K.S. Elite</p>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Dashboard</p>
+        <div className="flex items-center gap-2.5 px-2 mb-6">
+          <img src="/images/logo.png" alt="" width={34} height={34} className="object-contain shrink-0" />
+          <div>
+            <p className="font-display font-bold text-sm leading-tight">K.S. Elite</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Dashboard</p>
+          </div>
         </div>
 
         {nav.map(({ to, label, icon: Icon }) => (
@@ -122,6 +153,22 @@ export default function AdminLayout() {
       </aside>
 
       <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 overflow-y-auto overflow-x-hidden">
+        {greeting && (
+          <div
+            className="flex items-start gap-3 rounded-2xl border px-5 py-4 mb-6"
+            style={{ borderColor: "var(--line)", background: "color-mix(in srgb, var(--accent) 8%, var(--card))" }}
+          >
+            <Sparkles size={16} className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
+            <p className="text-sm flex-1">{greeting}</p>
+            <button
+              onClick={dismissGreeting}
+              aria-label="Dismiss"
+              className="shrink-0 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
         <AdminUserProvider value={user}>
           <Outlet />
         </AdminUserProvider>
