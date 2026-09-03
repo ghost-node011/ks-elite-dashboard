@@ -97,7 +97,7 @@ export default function AdminLayout() {
   const nav = user ? visibleNav(user.permissions) : [];
 
   return (
-    <div className="min-h-screen md:flex" style={{ background: "var(--bg-alt)", color: "var(--fg)" }}>
+    <div className="h-screen flex flex-col md:flex-row" style={{ background: "var(--bg-alt)", color: "var(--fg)" }}>
       {/* Mobile top bar */}
       <div
         className="md:hidden flex items-center justify-between px-4 py-3 border-b sticky top-0 z-20"
@@ -138,7 +138,7 @@ export default function AdminLayout() {
 
       {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex md:w-56 md:shrink-0 border-r px-4 py-6 flex-col gap-1"
+        className="hidden md:flex md:w-56 md:shrink-0 md:h-full border-r px-4 py-6 flex-col gap-1 overflow-y-auto"
         style={{ borderColor: "var(--line)", background: "var(--card)" }}
       >
         <div className="flex items-center gap-2.5 px-2 mb-6">
@@ -172,7 +172,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 min-w-0 min-h-0 px-4 sm:px-8 py-6 sm:py-8 overflow-y-auto overflow-x-hidden">
         {greeting && (
           <div
             className="flex items-start gap-3 rounded-2xl border px-5 py-4 mb-6"

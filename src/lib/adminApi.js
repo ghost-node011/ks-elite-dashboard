@@ -62,12 +62,12 @@ export const updateAdminUser = (id, payload) => request(`/admin/auth/users/${id}
 export const deleteAdminUser = (id) => request(`/admin/auth/users/${id}`, { method: "DELETE" });
 
 // ── subscribers ──────────────────────────────────────────────────────────
-export const getSubscribers = () => request("/subscribers");
+export const getSubscribers = (page = 1, limit = 50) => request(`/subscribers?page=${page}&limit=${limit}`);
 export const deleteSubscriber = (id) => request(`/subscribers/${id}`, { method: "DELETE" });
 
 // ── leads ────────────────────────────────────────────────────────────────
-export const getContacts = () => request("/contact");
-export const getInternships = () => request("/internship");
+export const getContacts = (page = 1, limit = 50) => request(`/contact?page=${page}&limit=${limit}`);
+export const getInternships = (page = 1, limit = 50) => request(`/internship?page=${page}&limit=${limit}`);
 export const updateLeadStatus = (kind, id, status) =>
   request(`/${kind}/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
 export const deleteLead = (kind, id) => request(`/${kind}/${id}`, { method: "DELETE" });
@@ -94,7 +94,8 @@ export const updateTestimonial = (id, payload) => request(`/testimonials/admin/$
 export const deleteTestimonial = (id) => request(`/testimonials/admin/${id}`, { method: "DELETE" });
 
 // ── cases ────────────────────────────────────────────────────────────────
-export const getAllCases = () => request("/cases/admin/all");
+export const getAllCases = (page = 1, limit = 50, { name = "", nextDate = "" } = {}) =>
+  request(`/cases/admin/all?page=${page}&limit=${limit}&name=${encodeURIComponent(name)}&nextDate=${encodeURIComponent(nextDate)}`);
 export const getCase = (id) => request(`/cases/admin/${id}`);
 export const createCase = (payload) => request("/cases/admin", { method: "POST", body: JSON.stringify(payload) });
 export const updateCase = (id, payload) => request(`/cases/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) });

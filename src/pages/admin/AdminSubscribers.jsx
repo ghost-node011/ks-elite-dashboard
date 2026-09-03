@@ -3,53 +3,84 @@ import { useNavigate } from "react-router-dom";
 import { Download, Trash2 } from "lucide-react";
 import { getSubscribers, deleteSubscriber, AuthError } from "../../lib/adminApi";
 import { downloadCsv } from "../../lib/csv";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 50;
 
 export default function AdminSubscribers() {
   const navigate = useNavigate();
   const [subs, setSubs] = useState(null);
+  const [meta, setMeta] = useState({ total: 0, page: 1, pages: 1 });
+  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const load = () => {
-    getSubscribers()
-      .then(setSubs)
+    setSubs(null);
+    getSubscribers(page, PAGE_SIZE)
+      .then(({ items, total, page: p, pages }) => {
+        setSubs(items);
+        setMeta({ total, page: p, pages });
+      })
       .catch((err) => {
         if (err instanceof AuthError) return navigate("/login", { replace: true });
         setError(err.message);
       });
   };
 
-  useEffect(load, []);
+  useEffect(load, [page]);
 
   const remove = async (id) => {
     if (!confirm("Remove this subscriber?")) return;
     try {
       await deleteSubscriber(id);
       setSubs((prev) => prev.filter((s) => s.id !== id));
+      setMeta((m) => ({ ...m, total: m.total - 1 }));
     } catch (err) {
       if (err instanceof AuthError) return navigate("/login", { replace: true });
       setError(err.message);
     }
   };
 
-  const exportCsv = () => {
-    downloadCsv("subscribers.csv", subs, [
-      ["Email", "email"],
-      ["Subscribed", (s) => new Date(s.receivedAt).toLocaleString()],
-    ]);
+  const exportCsv = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      const all = [];
+      let p = 1;
+      let totalPages = 1;
+      do {
+        const res = await getSubscribers(p, 200);
+        all.push(...res.items);
+        totalPages = res.pages;
+        p++;
+      } while (p <= totalPages);
+
+      downloadCsv("subscribers.csv", all, [
+        ["Email", "email"],
+        ["Subscribed", (s) => new Date(s.receivedAt).toLocaleString()],
+      ]);
+    } catch (err) {
+      if (err instanceof AuthError) return navigate("/login", { replace: true });
+      setError(err.message);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display font-bold text-2xl">Subscribers</h1>
-        {subs?.length > 0 && (
+        {meta.total > 0 && (
           <button
             onClick={exportCsv}
-            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium"
+            disabled={exporting}
+            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium disabled:opacity-60"
             style={{ borderColor: "var(--line)" }}
           >
             <Download size={14} />
-            Export CSV
+            {exporting ? "Exporting…" : "Export CSV"}
           </button>
         )}
       </div>
@@ -84,6 +115,8 @@ export default function AdminSubscribers() {
           </table>
         </div>
       )}
+
+      <Pagination page={meta.page} pages={meta.pages} total={meta.total} onChange={setPage} />
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { Download, FileText, Sparkles, Trash2 } from "lucide-react";
 import { updateLeadStatus, deleteLead, AuthError } from "../../lib/adminApi";
 import { resolveImageUrl } from "../../lib/api";
 import { downloadCsv } from "../../lib/csv";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 50;
 
 const STATUS_OPTIONS = ["new", "contacted", "closed"];
 const STATUS_COLORS = { new: "#c9a24b", contacted: "#2563eb", closed: "#6b7280" };
@@ -21,21 +24,28 @@ export default function LeadsTable({ type, title, fetcher }) {
   const isInternship = type === "internship";
 
   const [leads, setLeads] = useState(null);
+  const [meta, setMeta] = useState({ total: 0, page: 1, pages: 1 });
+  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const load = () => {
     setLeads(null);
     setError("");
-    fetcher()
-      .then(setLeads)
+    fetcher(page, PAGE_SIZE)
+      .then(({ items, total, page: p, pages }) => {
+        setLeads(items);
+        setMeta({ total, page: p, pages });
+      })
       .catch((err) => {
         if (err instanceof AuthError) return navigate("/login", { replace: true });
         setError(err.message);
       });
   };
 
-  useEffect(load, [type]);
+  useEffect(load, [type, page]);
+  useEffect(() => setPage(1), [type]);
 
   const setStatus = async (id, status) => {
     try {
@@ -68,29 +78,52 @@ export default function LeadsTable({ type, title, fetcher }) {
 
   const recommendedCount = isInternship ? (leads?.filter((l) => l.aiVerdict === "Strong Fit").length ?? 0) : 0;
 
-  const exportCsv = () => {
-    if (!isInternship) {
-      downloadCsv("consultation-requests.csv", visibleLeads, [
-        ["Received", (l) => new Date(l.receivedAt).toLocaleString()],
-        ["Name", "name"],
-        ["Phone", "phone"],
-        ["Matter", "matter"],
-        ["Message", "message"],
-        ["Status", "status"],
-      ]);
-    } else {
-      downloadCsv("internship-applications.csv", visibleLeads, [
-        ["Received", (l) => new Date(l.receivedAt).toLocaleString()],
-        ["Name", (l) => `${l.firstName} ${l.surname}`],
-        ["Email", "email"],
-        ["Contact", "contact"],
-        ["College", "college"],
-        ["Mode of Internship", "mode"],
-        ["Preferred Month", "month"],
-        ["AI Verdict", "aiVerdict"],
-        ["AI Score", "aiScore"],
-        ["Status", "status"],
-      ]);
+  // Export always covers every record, not just the page currently on
+  // screen — it pages through the API at a larger page size and concatenates.
+  const exportCsv = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      const all = [];
+      let p = 1;
+      let totalPages = 1;
+      do {
+        const res = await fetcher(p, 200);
+        all.push(...res.items);
+        totalPages = res.pages;
+        p++;
+      } while (p <= totalPages);
+
+      const rows = isInternship && recommendedOnly ? all.filter((l) => l.aiVerdict === "Strong Fit") : all;
+
+      if (!isInternship) {
+        downloadCsv("consultation-requests.csv", rows, [
+          ["Received", (l) => new Date(l.receivedAt).toLocaleString()],
+          ["Name", "name"],
+          ["Phone", "phone"],
+          ["Matter", "matter"],
+          ["Message", "message"],
+          ["Status", "status"],
+        ]);
+      } else {
+        downloadCsv("internship-applications.csv", rows, [
+          ["Received", (l) => new Date(l.receivedAt).toLocaleString()],
+          ["Name", (l) => `${l.firstName} ${l.surname}`],
+          ["Email", "email"],
+          ["Contact", "contact"],
+          ["College", "college"],
+          ["Mode of Internship", "mode"],
+          ["Preferred Month", "month"],
+          ["AI Verdict", "aiVerdict"],
+          ["AI Score", "aiScore"],
+          ["Status", "status"],
+        ]);
+      }
+    } catch (err) {
+      if (err instanceof AuthError) return navigate("/login", { replace: true });
+      setError(err.message);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -98,14 +131,15 @@ export default function LeadsTable({ type, title, fetcher }) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display font-bold text-2xl">{title}</h1>
-        {visibleLeads?.length > 0 && (
+        {meta.total > 0 && (
           <button
             onClick={exportCsv}
-            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium"
+            disabled={exporting}
+            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium disabled:opacity-60"
             style={{ borderColor: "var(--line)" }}
           >
             <Download size={14} />
-            Export CSV
+            {exporting ? "Exporting…" : "Export CSV"}
           </button>
         )}
       </div>
@@ -124,6 +158,7 @@ export default function LeadsTable({ type, title, fetcher }) {
             <Sparkles size={13} />
             AI Recommended ({recommendedCount})
           </button>
+          {recommendedOnly && <span className="text-xs text-[var(--fg-muted)]">Filters this page only — page through to see more.</span>}
         </div>
       )}
 
@@ -234,6 +269,8 @@ export default function LeadsTable({ type, title, fetcher }) {
           </div>
         </div>
       )}
+
+      <Pagination page={meta.page} pages={meta.pages} total={meta.total} onChange={setPage} />
     </div>
   );
 }

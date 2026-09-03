@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CalendarPlus, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { getAllCases, addCaseDate, deleteCase, AuthError } from "../../lib/adminApi";
 import { resolveImageUrl } from "../../lib/api";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 50;
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -14,31 +17,33 @@ function formatDate(iso) {
 export default function AdminCases() {
   const navigate = useNavigate();
   const [cases, setCases] = useState(null);
+  const [meta, setMeta] = useState({ total: 0, page: 1, pages: 1 });
+  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [nameSearch, setNameSearch] = useState("");
   const [dateSearch, setDateSearch] = useState("");
   const [addDateFor, setAddDateFor] = useState(null);
   const [newNextDate, setNewNextDate] = useState("");
 
-  const load = () => {
-    getAllCases()
-      .then(setCases)
-      .catch((err) => {
-        if (err instanceof AuthError) return navigate("/login", { replace: true });
-        setError(err.message);
-      });
-  };
+  // Search is server-side (matches across every case, not just the loaded
+  // page) — debounce the name field so it doesn't fire on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCases(null);
+      getAllCases(page, PAGE_SIZE, { name: nameSearch, nextDate: dateSearch })
+        .then(({ items, total, page: p, pages }) => {
+          setCases(items);
+          setMeta({ total, page: p, pages });
+        })
+        .catch((err) => {
+          if (err instanceof AuthError) return navigate("/login", { replace: true });
+          setError(err.message);
+        });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [page, nameSearch, dateSearch]);
 
-  useEffect(load, []);
-
-  const visible = useMemo(() => {
-    if (!cases) return cases;
-    return cases.filter((c) => {
-      const matchesName = !nameSearch.trim() || c.caseName.toLowerCase().includes(nameSearch.trim().toLowerCase());
-      const matchesDate = !dateSearch || c.nextDate === dateSearch;
-      return matchesName && matchesDate;
-    });
-  }, [cases, nameSearch, dateSearch]);
+  useEffect(() => setPage(1), [nameSearch, dateSearch]);
 
   const clearSearch = () => {
     setNameSearch("");
@@ -50,6 +55,7 @@ export default function AdminCases() {
     try {
       await deleteCase(id);
       setCases((prev) => prev.filter((c) => c.id !== id));
+      setMeta((m) => ({ ...m, total: m.total - 1 }));
     } catch (err) {
       if (err instanceof AuthError) return navigate("/login", { replace: true });
       setError(err.message);
@@ -121,10 +127,13 @@ export default function AdminCases() {
 
       {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
       {cases === null && !error && <p className="text-sm text-[var(--fg-muted)]">Loading…</p>}
-      {cases?.length === 0 && <p className="text-sm text-[var(--fg-muted)]">No cases yet — add your first one.</p>}
-      {cases?.length > 0 && visible.length === 0 && <p className="text-sm text-[var(--fg-muted)]">No cases match your search.</p>}
+      {cases?.length === 0 && (
+        <p className="text-sm text-[var(--fg-muted)]">
+          {nameSearch || dateSearch ? "No cases match your search." : "No cases yet — add your first one."}
+        </p>
+      )}
 
-      {visible?.length > 0 && (
+      {cases?.length > 0 && (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -143,7 +152,7 @@ export default function AdminCases() {
                 </tr>
               </thead>
               <tbody>
-                {visible.map((c) => (
+                {cases.map((c) => (
                   <tr key={c.id} className="border-b last:border-0 align-top" style={{ borderColor: "var(--line)" }}>
                     <td className="px-4 py-3 whitespace-nowrap text-[var(--fg-muted)]">{c.caseNumber}</td>
                     <td className="px-4 py-3 font-medium">{c.caseName}</td>
@@ -188,6 +197,8 @@ export default function AdminCases() {
           </div>
         </div>
       )}
+
+      <Pagination page={meta.page} pages={meta.pages} total={meta.total} onChange={setPage} />
 
       {addDateFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(6,10,19,0.5)" }}>
