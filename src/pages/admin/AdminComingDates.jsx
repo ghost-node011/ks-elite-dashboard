@@ -19,8 +19,8 @@ export default function AdminComingDates() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getAllCases()
-      .then(setCases)
+    getAllCases(1, 200)
+      .then(({ items }) => setCases(items))
       .catch((err) => {
         if (err instanceof AuthError) return navigate("/login", { replace: true });
         setError(err.message);

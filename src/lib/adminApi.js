@@ -120,6 +120,9 @@ export const suggestHeroImages = (title, category, excerpt) =>
 
 export const getGreeting = () => request("/admin/ai/greeting", { method: "POST" });
 
+// ── analytics ────────────────────────────────────────────────────────────
+export const getAnalytics = () => request("/admin/analytics");
+
 export async function parseDocument(file) {
   const form = new FormData();
   form.append("file", file);
