@@ -117,8 +117,8 @@ export default function AdminLayout() {
 
       {mobileOpen && (
         <div
-          className="md:hidden border-b px-4 py-3 flex flex-col gap-1 sticky top-[57px] z-20"
-          style={{ borderColor: "var(--line)", background: "var(--card)" }}
+          className="md:hidden border-b px-4 py-3 flex flex-col gap-1 overflow-y-auto"
+          style={{ borderColor: "var(--line)", background: "var(--card)", maxHeight: "calc(100vh - 57px)" }}
         >
           {nav.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} end className={navLinkClass} style={navLinkStyle} onClick={() => setMobileOpen(false)}>
