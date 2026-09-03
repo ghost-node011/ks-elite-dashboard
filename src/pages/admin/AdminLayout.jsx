@@ -1,6 +1,22 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, GraduationCap, Inbox, LogOut, Mail, Menu, MessageSquareQuote, Newspaper, Sparkles, ShieldCheck, Users, X } from "lucide-react";
+import {
+  BarChart3,
+  CalendarClock,
+  FileSearch,
+  FolderPlus,
+  GraduationCap,
+  Inbox,
+  LogOut,
+  Mail,
+  Menu,
+  MessageSquareQuote,
+  Newspaper,
+  Sparkles,
+  ShieldCheck,
+  Users,
+  X,
+} from "lucide-react";
 import { clearToken, getMe, getGreeting, AuthError } from "../../lib/adminApi";
 import { AdminUserProvider } from "../../lib/AdminUserContext";
 
@@ -9,6 +25,9 @@ const GREETING_CACHE_KEY = "ksd_greeting";
 const ALL_NAV = [
   { to: "/consultations", label: "Consultation Requests", icon: Inbox, section: "leads_contact" },
   { to: "/internships", label: "Internship Applications", icon: GraduationCap, section: "leads_internship" },
+  { to: "/cases/new", label: "Add Case", icon: FolderPlus, section: "cases" },
+  { to: "/cases", label: "Case Details", icon: FileSearch, section: "cases" },
+  { to: "/cases-coming-dates", label: "Coming Dates", icon: CalendarClock, section: "cases" },
   { to: "/posts", label: "Blog Posts", icon: Newspaper, section: "posts" },
   { to: "/team", label: "Team", icon: Users, section: "team" },
   { to: "/testimonials", label: "Testimonials", icon: MessageSquareQuote, section: "testimonials" },
@@ -102,7 +121,7 @@ export default function AdminLayout() {
           style={{ borderColor: "var(--line)", background: "var(--card)" }}
         >
           {nav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={navLinkClass} style={navLinkStyle} onClick={() => setMobileOpen(false)}>
+            <NavLink key={to} to={to} end className={navLinkClass} style={navLinkStyle} onClick={() => setMobileOpen(false)}>
               <Icon size={16} />
               {label}
             </NavLink>
@@ -131,7 +150,7 @@ export default function AdminLayout() {
         </div>
 
         {nav.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} className={navLinkClass} style={navLinkStyle}>
+          <NavLink key={to} to={to} end className={navLinkClass} style={navLinkStyle}>
             <Icon size={16} />
             {label}
           </NavLink>

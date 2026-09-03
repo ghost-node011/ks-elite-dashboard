@@ -93,6 +93,20 @@ export const createTestimonial = (payload) => request("/testimonials/admin", { m
 export const updateTestimonial = (id, payload) => request(`/testimonials/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const deleteTestimonial = (id) => request(`/testimonials/admin/${id}`, { method: "DELETE" });
 
+// ── cases ────────────────────────────────────────────────────────────────
+export const getAllCases = () => request("/cases/admin/all");
+export const getCase = (id) => request(`/cases/admin/${id}`);
+export const createCase = (payload) => request("/cases/admin", { method: "POST", body: JSON.stringify(payload) });
+export const updateCase = (id, payload) => request(`/cases/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const addCaseDate = (id, nextDate) => request(`/cases/admin/${id}/add-date`, { method: "POST", body: JSON.stringify({ nextDate }) });
+export const deleteCase = (id) => request(`/cases/admin/${id}`, { method: "DELETE" });
+
+export async function uploadFile(file) {
+  const form = new FormData();
+  form.append("file", file);
+  return request("/admin/upload-file", { method: "POST", body: form });
+}
+
 // ── AI + document import ────────────────────────────────────────────────
 export const draftPost = (topic, notes) =>
   request("/admin/ai/draft", { method: "POST", body: JSON.stringify({ topic, notes }) });

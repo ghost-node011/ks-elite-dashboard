@@ -9,6 +9,9 @@ const AdminGuard = lazy(() => import("./pages/admin/AdminGuard"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminConsultations = lazy(() => import("./pages/admin/AdminConsultations"));
 const AdminInternships = lazy(() => import("./pages/admin/AdminInternships"));
+const AdminCaseAdd = lazy(() => import("./pages/admin/AdminCaseAdd"));
+const AdminCases = lazy(() => import("./pages/admin/AdminCases"));
+const AdminComingDates = lazy(() => import("./pages/admin/AdminComingDates"));
 const AdminPosts = lazy(() => import("./pages/admin/AdminPosts"));
 const AdminPostEditor = lazy(() => import("./pages/admin/AdminPostEditor"));
 const AdminTeam = lazy(() => import("./pages/admin/AdminTeam"));
@@ -45,6 +48,10 @@ export default function App() {
               <Route index element={<Navigate to="consultations" replace />} />
               <Route path="consultations" element={<AdminConsultations />} />
               <Route path="internships" element={<AdminInternships />} />
+              <Route path="cases/new" element={<AdminCaseAdd />} />
+              <Route path="cases/:id/edit" element={<AdminCaseAdd />} />
+              <Route path="cases" element={<AdminCases />} />
+              <Route path="cases-coming-dates" element={<AdminComingDates />} />
               <Route path="posts" element={<AdminPosts />} />
               <Route path="posts/new" element={<AdminPostEditor />} />
               <Route path="posts/:id/edit" element={<AdminPostEditor />} />
