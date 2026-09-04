@@ -67,7 +67,9 @@ export const deleteSubscriber = (id) => request(`/subscribers/${id}`, { method: 
 
 // ── leads ────────────────────────────────────────────────────────────────
 export const getContacts = (page = 1, limit = 50) => request(`/contact?page=${page}&limit=${limit}`);
-export const getInternships = (page = 1, limit = 50) => request(`/internship?page=${page}&limit=${limit}`);
+export const getInternships = (page = 1, limit = 50, { year = "", month = "" } = {}) =>
+  request(`/internship?page=${page}&limit=${limit}&year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`);
+export const getInternshipSummary = () => request("/internship/summary");
 export const updateLeadStatus = (kind, id, status) =>
   request(`/${kind}/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
 export const deleteLead = (kind, id) => request(`/${kind}/${id}`, { method: "DELETE" });
