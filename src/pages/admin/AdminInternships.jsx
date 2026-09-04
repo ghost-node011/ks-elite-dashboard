@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Users, UserPlus } from "lucide-react";
 import { getInternships, getInternshipSummary, AuthError } from "../../lib/adminApi";
 import LeadsTable from "./LeadsTable";
 
@@ -15,6 +16,31 @@ function Pill({ active, onClick, children }) {
       }
     >
       {children}
+    </button>
+  );
+}
+
+function StatCard({ label, count, active, onClick, accent, Icon }) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-left rounded-2xl border p-5 transition-shadow hover:shadow-md"
+      style={{
+        borderColor: active ? accent : "var(--line)",
+        background: "var(--card)",
+        boxShadow: active ? `0 0 0 1px ${accent}` : "none",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: accent }}>
+            {label}
+          </p>
+          <p className="font-display font-bold text-3xl mb-1">{count.toLocaleString()}</p>
+          <p className="text-sm text-[var(--fg-muted)]">Registrations</p>
+        </div>
+        <Icon size={22} className="shrink-0 text-[var(--fg-muted)]" />
+      </div>
     </button>
   );
 }
@@ -62,37 +88,44 @@ export default function AdminInternships() {
       {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
 
       {summary && (
-        <div className="flex flex-col gap-3 mb-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <Pill active={!year} onClick={clearFilter}>
-              All ({summary.years.reduce((sum, y) => sum + y.count, 0)})
-            </Pill>
-            {pastYears.map((y) => (
-              <Pill key={y.year} active={year === String(y.year) && !month} onClick={() => selectYear(String(y.year))}>
-                {y.year} ({y.count})
-              </Pill>
-            ))}
-          </div>
-
-          {currentYearGroup && (
+        <div className="flex flex-col gap-4 mb-6">
+          {pastYears.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <Pill active={year === String(currentYearGroup.year) && !month} onClick={() => selectYear(String(currentYearGroup.year))}>
-                All {currentYearGroup.year} ({currentYearGroup.count})
-              </Pill>
-              {currentYearGroup.months.map((m) => (
-                <Pill
-                  key={m.key}
-                  active={month === m.key.slice(5)}
-                  onClick={() => {
-                    setYear(String(currentYearGroup.year));
-                    setMonth(m.key.slice(5));
-                  }}
-                >
-                  {m.label} ({m.count})
+              {pastYears.map((y) => (
+                <Pill key={y.year} active={year === String(y.year) && !month} onClick={() => selectYear(String(y.year))}>
+                  {y.year} ({y.count})
                 </Pill>
               ))}
             </div>
           )}
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Total"
+              count={summary.years.reduce((sum, y) => sum + y.count, 0)}
+              active={!year}
+              onClick={clearFilter}
+              accent="#2563eb"
+              Icon={Users}
+            />
+            {currentYearGroup?.months
+              .slice()
+              .reverse()
+              .map((m) => (
+                <StatCard
+                  key={m.key}
+                  label={m.label}
+                  count={m.count}
+                  active={year === String(currentYearGroup.year) && month === m.key.slice(5)}
+                  onClick={() => {
+                    setYear(String(currentYearGroup.year));
+                    setMonth(m.key.slice(5));
+                  }}
+                  accent="#16a34a"
+                  Icon={UserPlus}
+                />
+              ))}
+          </div>
         </div>
       )}
 
