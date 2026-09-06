@@ -121,6 +121,7 @@ export default function AdminPostEditor() {
 
   const runAiDraft = async () => {
     if (!aiTopic.trim()) return setError("Give the AI a topic first.");
+    if (!aiNotes.trim()) return setError("Add a description or key points — a bare topic isn't enough for a good draft.");
     setAiBusy(true);
     setError("");
     try {
@@ -302,7 +303,7 @@ export default function AdminPostEditor() {
           <Sparkles size={15} style={{ color: "var(--accent)" }} />
           Draft with AI
         </p>
-        <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3">
+        <div className="grid sm:grid-cols-2 gap-3 mb-3">
           <input
             value={aiTopic}
             onChange={(e) => setAiTopic(e.target.value)}
@@ -310,13 +311,16 @@ export default function AdminPostEditor() {
             className="rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)]"
             style={{ borderColor: "var(--line)", background: "var(--bg)" }}
           />
-          <input
+          <textarea
             value={aiNotes}
             onChange={(e) => setAiNotes(e.target.value)}
-            placeholder="Notes / angle (optional)"
-            className="rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)]"
+            placeholder="Description / key points to cover (required) — the more specific, the better the draft"
+            rows={2}
+            className="rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)] resize-none"
             style={{ borderColor: "var(--line)", background: "var(--bg)" }}
           />
+        </div>
+        <div className="flex justify-end">
           <button
             onClick={runAiDraft}
             disabled={aiBusy}
