@@ -17,11 +17,15 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { clearToken, getMe, getGreeting, AuthError } from "../../lib/adminApi";
+import { clearToken, getMe, getGreeting, refreshToken, AuthError } from "../../lib/adminApi";
 import { AdminUserProvider } from "../../lib/AdminUserContext";
 import AssistantWidget from "../../components/AssistantWidget";
 
 const GREETING_CACHE_KEY = "ksd_greeting";
+// Well under the 30-day token life — keeps a session alive indefinitely for
+// as long as the dashboard stays open, so it only ever ends on explicit logout
+// or a full 30 days with the tab closed.
+const TOKEN_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 
 const ALL_NAV = [
   { to: "/consultations", label: "Consultation Requests", icon: Inbox, section: "leads_contact" },
@@ -67,6 +71,19 @@ export default function AdminLayout() {
         if (err instanceof AuthError) return navigate("/login", { replace: true });
       });
   }, []);
+
+  // Silently re-signs the token on an interval so a session never expires
+  // while the dashboard is open — only an explicit logout (or 30 days fully
+  // closed) ends it.
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      refreshToken().catch((err) => {
+        if (err instanceof AuthError) navigate("/login", { replace: true });
+      });
+    }, TOKEN_REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // One AI-written greeting per login session — cached so it doesn't
   // regenerate (and re-hit the LLM) on every route change within the layout.

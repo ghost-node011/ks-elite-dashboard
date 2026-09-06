@@ -53,6 +53,12 @@ export async function login(username, password) {
   return data.token;
 }
 
+export async function refreshToken() {
+  const data = await request("/admin/auth/refresh", { method: "POST" });
+  setToken(data.token);
+  return data.token;
+}
+
 // ── current user / staff management ─────────────────────────────────────
 export const getMe = () => request("/admin/auth/me");
 export const getSections = () => request("/admin/auth/sections");
