@@ -8,6 +8,14 @@ import Pagination from "../../components/Pagination";
 
 const PAGE_SIZE = 50;
 
+// Chrome has a native PDF/image viewer but nothing for Word docs, so those
+// would just download instead of preview — route them through Google's
+// viewer (needs a publicly reachable URL, which Cloudinary URLs already are).
+function previewUrl(url) {
+  if (/\.docx?$/i.test(url)) return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  return url;
+}
+
 const STATUS_OPTIONS = ["new", "contacted", "closed"];
 const STATUS_COLORS = { new: "#c9a24b", contacted: "#2563eb", closed: "#6b7280" };
 const VERDICT_COLORS = {
@@ -213,7 +221,7 @@ export default function LeadsTable({ type, title, fetcher }) {
                       <td className="px-4 py-3">
                         {l.resumeUrl ? (
                           <a
-                            href={resolveImageUrl(l.resumeUrl)}
+                            href={previewUrl(resolveImageUrl(l.resumeUrl))}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 hover:text-[var(--accent)] w-fit"
