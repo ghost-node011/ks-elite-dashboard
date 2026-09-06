@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ImagePlus, Images, Pencil, Plus, Sparkles, Trash2, Upload, Wand2 } from "lucide-react";
+import { ArrowLeft, ImagePlus, Images, Pencil, Plus, Sparkles, Trash2, Upload, UserPlus, Wand2 } from "lucide-react";
 import {
   getPost,
   createPost,
@@ -10,6 +10,8 @@ import {
   suggestHeroImages,
   parseDocument,
   uploadImage,
+  getAuthors,
+  createAuthor,
   AuthError,
 } from "../../lib/adminApi";
 import { resolveImageUrl } from "../../lib/api";
@@ -37,6 +39,13 @@ export default function AdminPostEditor() {
   const [excerpt, setExcerpt] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [authorLinkedIn, setAuthorLinkedIn] = useState("");
+  const [authorImage, setAuthorImage] = useState(null);
+  const [authorDescription, setAuthorDescription] = useState("");
+  const [savedAuthors, setSavedAuthors] = useState([]);
+  const [showNewAuthor, setShowNewAuthor] = useState(false);
+  const [newAuthor, setNewAuthor] = useState({ name: "", image: null, description: "", linkedin: "" });
+  const [savingAuthor, setSavingAuthor] = useState(false);
+  const authorImageFileRef = useRef(null);
   const [heroImage, setHeroImage] = useState(null);
   const [sections, setSections] = useState([{ text: "<p></p>", image: null }]);
   const [published, setPublished] = useState(false);
@@ -60,6 +69,12 @@ export default function AdminPostEditor() {
   const docFileRef = useRef(null);
 
   useEffect(() => {
+    getAuthors()
+      .then(setSavedAuthors)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!isEdit) return;
     getPost(id)
       .then((p) => {
@@ -68,6 +83,8 @@ export default function AdminPostEditor() {
         setExcerpt(p.excerpt || "");
         setAuthorName(p.authorName || "");
         setAuthorLinkedIn(p.authorLinkedIn || "");
+        setAuthorImage(p.authorImage || null);
+        setAuthorDescription(p.authorDescription || "");
         setHeroImage(p.heroImage);
         setSections(p.sections?.length ? p.sections : [{ text: "<p></p>", image: null }]);
         setPublished(p.published);
@@ -99,6 +116,8 @@ export default function AdminPostEditor() {
       excerpt,
       authorName,
       authorLinkedIn,
+      authorImage,
+      authorDescription,
       heroImage,
       sections,
       published: publishNow ?? published,
@@ -171,6 +190,48 @@ export default function AdminPostEditor() {
   const pickSuggestedImage = (url) => {
     setHeroImage(url);
     setImageSuggestions(null);
+  };
+
+  const pickSavedAuthor = (e) => {
+    const author = savedAuthors.find((a) => a.id === e.target.value);
+    if (!author) return;
+    setAuthorName(author.name);
+    setAuthorImage(author.image || null);
+    setAuthorDescription(author.description || "");
+    setAuthorLinkedIn(author.linkedin || "");
+    e.target.value = "";
+  };
+
+  const uploadNewAuthorImage = async (file) => {
+    if (!file) return;
+    try {
+      const { url } = await uploadImage(file);
+      setNewAuthor((a) => ({ ...a, image: url }));
+    } catch (err) {
+      guardAuth(err);
+    } finally {
+      if (authorImageFileRef.current) authorImageFileRef.current.value = "";
+    }
+  };
+
+  const saveNewAuthor = async () => {
+    if (!newAuthor.name.trim()) return setError("Give the new author a name first.");
+    setSavingAuthor(true);
+    setError("");
+    try {
+      const created = await createAuthor(newAuthor);
+      setSavedAuthors((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setAuthorName(created.name);
+      setAuthorImage(created.image || null);
+      setAuthorDescription(created.description || "");
+      setAuthorLinkedIn(created.linkedin || "");
+      setNewAuthor({ name: "", image: null, description: "", linkedin: "" });
+      setShowNewAuthor(false);
+    } catch (err) {
+      guardAuth(err);
+    } finally {
+      setSavingAuthor(false);
+    }
   };
 
   const uploadHero = async (file) => {
@@ -271,17 +332,20 @@ export default function AdminPostEditor() {
             <span className="font-mono text-[11px] uppercase tracking-wide text-[var(--fg-muted)]">{category}</span>
             {excerpt && <p className="text-[var(--fg-muted)] mt-3 italic">{excerpt}</p>}
             {authorName && (
-              <p className="text-sm mt-3">
-                By {authorName}
-                {authorLinkedIn && (
-                  <>
-                    {" · "}
-                    <a href={authorLinkedIn} target="_blank" rel="noreferrer" className="hover:text-[var(--accent)] underline">
+              <div className="flex items-center gap-3 mt-4">
+                {authorImage && (
+                  <img src={resolveImageUrl(authorImage)} alt="" className="w-10 h-10 rounded-full object-cover border" style={{ borderColor: "var(--line)" }} />
+                )}
+                <div>
+                  <p className="text-sm font-medium">{authorName}</p>
+                  {authorDescription && <p className="text-xs text-[var(--fg-muted)]">{authorDescription}</p>}
+                  {authorLinkedIn && (
+                    <a href={authorLinkedIn} target="_blank" rel="noreferrer" className="text-xs hover:text-[var(--accent)] underline">
                       LinkedIn
                     </a>
-                  </>
-                )}
-              </p>
+                  )}
+                </div>
+              </div>
             )}
             <div className="prose-blog mt-6">
               {sections.map((s, i) => (
@@ -434,20 +498,115 @@ export default function AdminPostEditor() {
           style={{ borderColor: "var(--line)", background: "var(--card)" }}
         />
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <input
-            value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
-            placeholder="Author name (optional)"
-            className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[var(--accent)]"
-            style={{ borderColor: "var(--line)", background: "var(--card)" }}
-          />
-          <input
-            value={authorLinkedIn}
-            onChange={(e) => setAuthorLinkedIn(e.target.value)}
-            placeholder="Author LinkedIn URL (optional)"
-            className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[var(--accent)]"
-            style={{ borderColor: "var(--line)", background: "var(--card)" }}
+        <div className="rounded-xl border p-4 flex flex-col gap-3" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-[var(--fg-muted)] shrink-0">Author</p>
+            {authorImage && (
+              <img src={resolveImageUrl(authorImage)} alt="" className="w-8 h-8 rounded-full object-cover border" style={{ borderColor: "var(--line)" }} />
+            )}
+            <select
+              onChange={pickSavedAuthor}
+              defaultValue=""
+              disabled={savedAuthors.length === 0}
+              className="rounded-xl border px-3 py-2 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-50"
+              style={{ borderColor: "var(--line)", background: "var(--bg)" }}
+            >
+              <option value="" disabled>
+                {savedAuthors.length ? "Autofill from a saved author…" : "No saved authors yet"}
+              </option>
+              {savedAuthors.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowNewAuthor((v) => !v)}
+              className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium"
+              style={{ borderColor: "var(--line)", color: "var(--accent)" }}
+            >
+              <UserPlus size={12} />
+              New Author
+            </button>
+          </div>
+
+          {showNewAuthor && (
+            <div className="rounded-xl border p-3 flex flex-col gap-3" style={{ borderColor: "var(--line)", background: "var(--bg)" }}>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <input
+                  value={newAuthor.name}
+                  onChange={(e) => setNewAuthor((a) => ({ ...a, name: e.target.value }))}
+                  placeholder="Name"
+                  className="rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)]"
+                  style={{ borderColor: "var(--line)", background: "var(--card)" }}
+                />
+                <input
+                  value={newAuthor.linkedin}
+                  onChange={(e) => setNewAuthor((a) => ({ ...a, linkedin: e.target.value }))}
+                  placeholder="LinkedIn URL (optional)"
+                  className="rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)]"
+                  style={{ borderColor: "var(--line)", background: "var(--card)" }}
+                />
+              </div>
+              <textarea
+                value={newAuthor.description}
+                onChange={(e) => setNewAuthor((a) => ({ ...a, description: e.target.value }))}
+                placeholder="Description / role (e.g. Associate, Faculty of Law, Delhi University)"
+                rows={2}
+                className="rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)] resize-none"
+                style={{ borderColor: "var(--line)", background: "var(--card)" }}
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => authorImageFileRef.current?.click()}
+                  className="flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm"
+                  style={{ borderColor: "var(--line)", background: "var(--card)" }}
+                >
+                  <ImagePlus size={14} />
+                  {newAuthor.image ? "Change photo" : "Upload photo"}
+                </button>
+                <input ref={authorImageFileRef} type="file" accept="image/*" hidden onChange={(e) => uploadNewAuthorImage(e.target.files?.[0])} />
+                {newAuthor.image && (
+                  <img src={resolveImageUrl(newAuthor.image)} alt="" className="w-9 h-9 rounded-full object-cover border shrink-0" style={{ borderColor: "var(--line)" }} />
+                )}
+                <button
+                  type="button"
+                  onClick={saveNewAuthor}
+                  disabled={savingAuthor}
+                  className="ml-auto rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+                  style={{ background: "var(--accent)", color: "var(--color-navy)" }}
+                >
+                  {savingAuthor ? "Saving…" : "Save Author"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <input
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="Author name (optional)"
+              className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[var(--accent)]"
+              style={{ borderColor: "var(--line)", background: "var(--bg)" }}
+            />
+            <input
+              value={authorLinkedIn}
+              onChange={(e) => setAuthorLinkedIn(e.target.value)}
+              placeholder="Author LinkedIn URL (optional)"
+              className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[var(--accent)]"
+              style={{ borderColor: "var(--line)", background: "var(--bg)" }}
+            />
+          </div>
+          <textarea
+            value={authorDescription}
+            onChange={(e) => setAuthorDescription(e.target.value)}
+            placeholder="Author description / role (optional)"
+            rows={2}
+            className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[var(--accent)] resize-none"
+            style={{ borderColor: "var(--line)", background: "var(--bg)" }}
           />
         </div>
       </div>

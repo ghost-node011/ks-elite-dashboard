@@ -81,6 +81,12 @@ export const createPost = (payload) => request("/posts/admin", { method: "POST",
 export const updatePost = (id, payload) => request(`/posts/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const deletePost = (id) => request(`/posts/admin/${id}`, { method: "DELETE" });
 
+// ── authors (reusable byline profiles) ──────────────────────────────────
+export const getAuthors = () => request("/authors/admin");
+export const createAuthor = (payload) => request("/authors/admin", { method: "POST", body: JSON.stringify(payload) });
+export const updateAuthor = (id, payload) => request(`/authors/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const deleteAuthor = (id) => request(`/authors/admin/${id}`, { method: "DELETE" });
+
 // ── team ─────────────────────────────────────────────────────────────────
 export const getAllTeam = () => request("/team/admin/all");
 export const getTeamMember = (id) => request(`/team/admin/${id}`);
@@ -121,6 +127,9 @@ export const suggestHeroImages = (title, category, excerpt) =>
   request("/admin/ai/suggest-images", { method: "POST", body: JSON.stringify({ title, category, excerpt }) });
 
 export const getGreeting = () => request("/admin/ai/greeting", { method: "POST" });
+
+export const askAssistant = (messages) =>
+  request("/admin/assistant/chat", { method: "POST", body: JSON.stringify({ messages }) });
 
 // ── analytics ────────────────────────────────────────────────────────────
 export const getAnalytics = () => request("/admin/analytics");

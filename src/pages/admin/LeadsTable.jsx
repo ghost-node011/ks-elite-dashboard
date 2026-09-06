@@ -110,6 +110,7 @@ export default function LeadsTable({ type, title, fetcher }) {
           ["Name", "name"],
           ["Phone", "phone"],
           ["Matter", "matter"],
+          ["Source", (l) => l.source || ""],
           ["Message", "message"],
           ["Status", "status"],
         ]);
@@ -187,6 +188,7 @@ export default function LeadsTable({ type, title, fetcher }) {
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">{isInternship ? "College" : "Matter"}</th>
+                  {!isInternship && <th className="px-4 py-3">Source</th>}
                   <th className="px-4 py-3">Details</th>
                   {isInternship && <th className="px-4 py-3">Resume</th>}
                   {isInternship && <th className="px-4 py-3">AI Fit</th>}
@@ -214,6 +216,20 @@ export default function LeadsTable({ type, title, fetcher }) {
                       )}
                     </td>
                     <td className="px-4 py-3">{isInternship ? l.college : l.matter || "—"}</td>
+                    {!isInternship && (
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {l.source ? (
+                          <span
+                            className="rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-wide"
+                            style={{ background: "var(--bg)", border: "1px solid var(--line)", color: "var(--fg-muted)" }}
+                          >
+                            {l.source}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--fg-muted)]">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 max-w-xs text-[var(--fg-muted)]">
                       {isInternship ? `Mode of Internship: ${l.mode} · Preferred Month: ${l.month}` : l.message}
                     </td>

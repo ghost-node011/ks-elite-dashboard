@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { clearToken, getMe, getGreeting, AuthError } from "../../lib/adminApi";
 import { AdminUserProvider } from "../../lib/AdminUserContext";
+import AssistantWidget from "../../components/AssistantWidget";
 
 const GREETING_CACHE_KEY = "ksd_greeting";
 
@@ -193,6 +194,8 @@ export default function AdminLayout() {
           <Outlet />
         </AdminUserProvider>
       </main>
+
+      {user && <AssistantWidget />}
     </div>
   );
 }
