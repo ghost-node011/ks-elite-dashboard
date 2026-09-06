@@ -13,8 +13,19 @@ import {
   AuthError,
 } from "../../lib/adminApi";
 import { resolveImageUrl } from "../../lib/api";
+import RichTextEditor from "../../components/RichTextEditor";
 
-const CATEGORIES = ["Technology", "Inter-State Dispute", "Courts", "Laws", "Divorce"];
+const CATEGORIES = [
+  "Technology",
+  "Inter-State Dispute",
+  "Courts",
+  "Laws",
+  "Divorce",
+  "Casteism",
+  "Minority Educational Institutions",
+  "Writs",
+  "Intellectual Property",
+];
 
 export default function AdminPostEditor() {
   const { id } = useParams();
@@ -460,13 +471,10 @@ export default function AdminPostEditor() {
                 </button>
               </div>
             </div>
-            <textarea
+            <RichTextEditor
               value={s.text}
-              onChange={(e) => updateSection(i, { text: e.target.value })}
-              rows={4}
-              placeholder="Type plain text or HTML — Fix with AI will correct spelling/grammar and format it properly."
-              className="w-full rounded-xl border px-3.5 py-2.5 text-sm font-mono outline-none focus:border-[var(--accent)] resize-y"
-              style={{ borderColor: "var(--line)", background: "var(--bg)" }}
+              onChange={(html) => updateSection(i, { text: html })}
+              placeholder="Write the section content — use the toolbar for bold, headings, and lists."
             />
             <button
               onClick={() => fixSection(i)}

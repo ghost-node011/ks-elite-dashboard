@@ -261,6 +261,12 @@
   text-decoration: underline;
 }
 
+/* rte-editable — placeholder text for the empty contentEditable post editor */
+.rte-editable:empty::before {
+  content: attr(data-placeholder);
+  color: var(--fg-muted);
+}
+
 /* ornamental divider */
 .rule-diamond {
   display: flex;
