@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, getSections, AuthError } from "../../lib/adminApi";
+import { isValidEmail } from "../../lib/validators";
 
 const emptyForm = { email: "", label: "", password: "", permissions: [] };
 
@@ -49,6 +50,9 @@ export default function AdminUsers() {
     setError("");
     if (!editingId && (!form.email.trim() || !form.password.trim())) {
       return setError("Email and password are required for a new user.");
+    }
+    if (!editingId && !isValidEmail(form.email)) {
+      return setError("Please provide a valid email address.");
     }
     setSaving(true);
     try {

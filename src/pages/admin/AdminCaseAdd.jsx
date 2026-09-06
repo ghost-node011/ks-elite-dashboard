@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Paperclip } from "lucide-react";
 import { getCase, createCase, updateCase, uploadFile, AuthError } from "../../lib/adminApi";
 import { resolveImageUrl } from "../../lib/api";
+import { isValidEmail, isValidPhone } from "../../lib/validators";
 
 function Field({ label, children }) {
   return (
@@ -85,6 +86,8 @@ export default function AdminCaseAdd() {
 
   const save = async () => {
     if (!form.caseName.trim()) return setError("Name of case is required.");
+    if (form.email.trim() && !isValidEmail(form.email)) return setError("Please provide a valid email address.");
+    if (form.clientMobile.trim() && !isValidPhone(form.clientMobile)) return setError("Please provide a valid client mobile number.");
     setSaving(true);
     setError("");
     try {
